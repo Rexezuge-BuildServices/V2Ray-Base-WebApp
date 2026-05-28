@@ -23,7 +23,7 @@ RUN mkdir -p /tmp/ssl/selfsigned \
 
 FROM rexezugedockerutils/nginx-static AS nginx-static
 
-FROM rexezugedockerutils/nginx-uptime-go AS nginx-uptime-go
+FROM rexezugedockerutils/chorddht AS chorddht
 
 FROM rexezugedockerutils/usagi-init:release AS runtime
 
@@ -35,7 +35,7 @@ COPY --from=builder /tmp/ssl/selfsigned /etc/ssl/selfsigned
 
 COPY --from=nginx-static /nginx /usr/sbin/nginx
 
-COPY --from=nginx-uptime-go /NginxUptime-Go /NginxUptime-Go
+COPY --from=chorddht /ChordDHT-Node /ChordDHT-Node
 
 COPY overlay/ /
 
