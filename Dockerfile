@@ -37,6 +37,8 @@ COPY --from=nginx-static /nginx /usr/sbin/nginx
 
 COPY --from=chorddht /ChordDHT-Node /ChordDHT-Node
 
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
 COPY overlay/ /
 
 FROM scratch
