@@ -1,14 +1,11 @@
-FROM rexezugedockerutils/cloudflared AS cloudflared
-
 FROM rexezugedockerutils/upx AS upx
 
 FROM debian:12 AS builder
 
 WORKDIR /tmp
 
-# Install Dependencies
 RUN apt-get update \
- && apt-get install -y --no-install-recommends build-essential curl unzip zlib1g-dev libpcre2-dev perl ca-certificates
+ && apt-get install -y --no-install-recommends curl unzip ca-certificates
 
 COPY --from=upx /upx /usr/local/bin/upx
 
@@ -17,32 +14,18 @@ RUN curl -L -o /tmp/v2ray.zip https://github.com/v2fly/v2ray-core/releases/lates
  && unzip /tmp/v2ray.zip -d /tmp/v2ray \
  && upx --best --lzma /tmp/v2ray/v2ray
 
-# Generate Random Self Signed SSL Certificate
-RUN mkdir -p /tmp/ssl/selfsigned \
- && openssl req -x509 -newkey rsa:2048 -days 365 -nodes -keyout /tmp/ssl/selfsigned/server.key -out /tmp/ssl/selfsigned/server.crt -subj "/CN=localhost"
+FROM rexezugebuild/appservicelauncher AS runtime
 
-FROM rexezugedockerutils/nginx-static AS nginx-static
+COPY --from=builder /tmp/v2ray/v2ray /.AppServiceLauncher/usr/local/bin/v2ray
 
-FROM rexezugedockerutils/chorddht AS chorddht
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /.AppServiceLauncher/etc/ssl/certs/ca-certificates.crt
 
-FROM rexezugedockerutils/usagi-init:release AS runtime
-
-COPY --from=builder /tmp/v2ray/v2ray /usr/local/bin/v2ray
-
-COPY --from=cloudflared /cloudflared /usr/local/bin/cloudflared
-
-COPY --from=builder /tmp/ssl/selfsigned /etc/ssl/selfsigned
-
-COPY --from=nginx-static /nginx /usr/sbin/nginx
-
-COPY --from=chorddht /ChordDHT-Node /ChordDHT-Node
-
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-
-COPY overlay/ /
+COPY overlay/ /.AppServiceLauncher/
 
 FROM scratch
 
 COPY --from=runtime / /
 
-ENTRYPOINT ["/UsagiInit"]
+ENTRYPOINT ["/.AppServiceLauncher/launcher.sh"]
+
+CMD ["/.AppServiceLauncher/usr/local/bin/v2ray", "run", "-config", "/etc/v2ray/config.json"]
